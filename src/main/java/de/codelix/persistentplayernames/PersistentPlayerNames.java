@@ -47,7 +47,7 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
         }
 
         try {
-            this.con = DriverManager.getConnection("jdbc:mysql://localhost:3306/myDb", "user1", "pass");
+            this.con = DriverManager.getConnection("jdbc:mysql://"+host+":"+port+"/" + database, user, password);
             this.createTable();
         } catch (SQLException e) {
             throw new RuntimeException("Could not connect to Database", e);
