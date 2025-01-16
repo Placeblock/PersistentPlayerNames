@@ -1,0 +1,7 @@
+name: PersistentPlayerNames
+version: 1.0.0
+main: de.codelix.persistentplayernames.PersistentPlayerNames
+description: Stores the UUID together with the current Player Name in a database
+author: Placeblock
+website: https://codelix.de
+api-version: '1.21.4'
