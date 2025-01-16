@@ -20,7 +20,7 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
     public void onEnable() {
         this.saveDefaultConfig();
 
-        ConfigurationSection db = getConfig().getConfigurationSection("db");
+        ConfigurationSection db = getConfig().getConfigurationSection("mysql");
         if (db == null) {
             throw new IllegalStateException("Failed to load config");
         }
