@@ -52,6 +52,8 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
         } catch (SQLException e) {
             throw new RuntimeException("Could not connect to Database", e);
         }
+
+        this.getServer().getPluginManager().registerEvents(this, this);
     }
 
     @Override
@@ -88,7 +90,7 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
 
     private void createTable() throws SQLException {
         this.con.prepareStatement("""
-            CREATE TABLE player_names (
+            CREATE TABLE IF NOT EXISTS player_names (
                 uuid VARCHAR(36) NOT NULL PRIMARY KEY,
                 name VARCHAR(16) NOT NULL UNIQUE
             ); 
