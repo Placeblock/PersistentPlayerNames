@@ -83,6 +83,7 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
         """);
         stmt.setString(1, uuid.toString());
         stmt.setString(2, name);
+        stmt.execute();
     }
 
     private void createTable() throws SQLException {
