@@ -1,5 +1,7 @@
 package de.codelix.persistentplayernames;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -7,14 +9,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
 public class PersistentPlayerNames extends JavaPlugin implements Listener {
-    private Connection con;
+    private HikariDataSource ds;
 
     @Override
     public void onEnable() {
@@ -46,8 +46,13 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
             throw new IllegalStateException("Failed to load config: Host missing in db section");
         }
 
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database);
+        config.setUsername(user);
+        config.setPassword(password);
+        this.ds = new HikariDataSource(config);
+
         try {
-            this.con = DriverManager.getConnection("jdbc:mysql://"+host+":"+port+"/" + database, user, password);
             this.createTable();
         } catch (SQLException e) {
             throw new RuntimeException("Could not connect to Database", e);
@@ -58,17 +63,11 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        if (this.con == null) return;
-        try {
-            this.con.close();
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to close connection to Database", e);
-        }
+        this.ds.close();
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        if (this.con == null) return;
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
         String playerName = player.getName();
@@ -80,21 +79,24 @@ public class PersistentPlayerNames extends JavaPlugin implements Listener {
     }
 
     private void storePlayerName(UUID uuid, String name) throws SQLException {
-        PreparedStatement stmt = this.con.prepareStatement("""
-            INSERT INTO player_names (uuid, name) VALUES (?, ?)
-        """);
-        stmt.setString(1, uuid.toString());
-        stmt.setString(2, name);
-        stmt.execute();
+        try(PreparedStatement stmt = this.ds.getConnection().prepareStatement("""
+            INSERT INTO player_names (uuid, name) VALUES (?, ?) ON DUPLICATE KEY UPDATE name=?
+        """)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setString(2, name);
+            stmt.setString(3, name);
+            stmt.execute();
+        }
     }
 
     private void createTable() throws SQLException {
-        this.con.prepareStatement("""
+        try(PreparedStatement stmt = this.ds.getConnection().prepareStatement("""
             CREATE TABLE IF NOT EXISTS player_names (
                 uuid VARCHAR(36) NOT NULL PRIMARY KEY,
                 name VARCHAR(16) NOT NULL UNIQUE
-            ); 
-        """).execute();
+            );
+        """)) {
+            stmt.execute();
+        }
     }
-
 }
